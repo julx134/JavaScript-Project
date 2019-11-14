@@ -1,0 +1,849 @@
+/*
+Jules Gammad
+Waly John Faiz
+Mr. Hofer Grade 10
+Due Date: 6/15/2016
+*/
+
+//Start-up background
+//empty arrays--becomes filled with the ".push" command for the background
+var xPositions = [];
+var yPositions = [];
+var winstonPosX = [];
+var winstonPosY = [];
+var rectPosX = [];
+var rectPosY = [];
+var objectColor = [];
+
+
+//x is repeated 25 times to assign random values to the arrays
+for (var x = 0; x < 25; x++) {
+    
+    //a random value is "pushed" in the array 25 times
+    xPositions.push (random(0,400));   
+    yPositions.push (random(0,400));
+    winstonPosX.push (random(0,400));
+    winstonPosY.push (random(0,400));
+    rectPosX.push (random(0,400));
+    rectPosY.push (random(0,400));
+    
+    //color command is used to store a color in a variable (fill and numbers do not work -- shades of black)
+    objectColor.push (color(random(0,255),random(0,255),random(0,255)));
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//var's for the game
+var titleX = 200; //Tittle X Position for the game
+var titleY = 100; //Title Y Position for the game
+var buttonX = 205; //General Button X Positions
+var buttonY = 170; // General Button Y Positions
+var rectX = 200; //X Positions for the squares in the How To Play screen
+var rectY = 200; //Y Positions for the squares in the How to Play screen
+var rectSize = 80; // Size of the rectangle in the How to Play Screen
+var triX = 200; //Triangles X Position for How To Play screen
+var triY = 200; //Triangles Y Positions for the How to Play screen 
+var liveCount = 3; // Lives Counter
+var asphaltX = 50; //X Positions of the Asphalt
+var asphaltY = 0; // Y Positions of the Asphalt
+var lvlDiff = 60; // Difficulty of the Level
+var lvlSpeed = 2; //Level Speed
+var lvlCounter = 1; //Level Counter
+var tankUse = false; // easter egg
+
+//vars that are used for fixing glitches -- comments on what it does is explained later in the code
+var runGame = false;
+var pageClick = false;
+var pageClickOne = false;
+var pageClickTwo = false;
+
+//variables for the cars -- redC is true so that redCar is selected as defualt starter
+var redC = true;
+var blueC = false;
+var pinkC = false;
+var yellowC = false;
+
+
+//title function
+var walyRun = function (titleSize) {
+    textFont(createFont("Impact"));
+    fill (217, 32, 69);
+    textSize (titleSize);
+    textAlign (CENTER, CENTER);
+    text ("Waly Runs", titleX, titleY);
+};
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//BUTTON FUNCTIONS
+
+
+//button constructor
+var Button = function(x, y, width, height, word, txtSize) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.word = word;
+    this.txtSize = txtSize;
+};
+
+
+//button draw prototype in order to draw the button
+Button.prototype.draw = function() {
+    fill (0, 0, 0);
+    //General Design of the Main Menu Buttons
+    stroke(55, 13, 224);
+    strokeWeight(3);
+    rect (this.x, this.y, this.width, this.height, 5); 
+    fill(255, 255, 255);
+    textSize (this.txtSize);
+    text (this.word,buttonX, this.y+this.height/2);
+    
+
+};
+
+
+//isMouseInside function that see's if mouse is inside the the button
+Button.prototype.isMouseInside = function() {
+    //returns if the mouse is inside the button
+    return (mouseX >= this.x &&
+            mouseX <= (this.x+this.width) &&
+            mouseY >= this.y && 
+            mouseY <= (this.y+this.height));
+};
+
+
+//button variables    
+var playButton = new Button (buttonX/1.55, buttonY, 145, 50, "Start", 50);  //Play Buttons
+var shopButton = new Button (buttonX/1.55, buttonY/0.7, 145, 50, "Shop", 50); //Shop Button
+var intsrucButton = new Button (buttonX/1.55, buttonY/0.54, 145, 50, "How To Play", 28); //Instructions Button
+var menuButton = new Button (buttonX*1.5, buttonY-150, 70, 30, "                                                                              Menu", 20);
+var loseButton = new Button (buttonX/1.55, buttonY/0.7, 145, 50, "Main menu", 30); //Lose Buttons
+var playAgainButton = new Button (buttonX/1.55, buttonY, 145, 50, "Play Again", 30); //Play Again Button
+var nxtLvlButton = new Button (buttonX/1.55, buttonY/0.54, 145, 50, "Next Level", 30); //Next level Button
+
+//shop buttons
+var redButton = new Button (40, 100, 100, 100); //Button to choose Red Car
+var blueButton = new Button (40, 250, 100, 100); //Button to choose Blue Car
+var pinkButton = new Button (250, 100, 100, 100); //Button to choose Pink Car
+var yellowButton = new Button (250, 250, 100, 100); //Button to choose Yellow Car
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//CAR FUNCTIONS
+
+//background sidescroller for the asphalt and the side bushes and walls
+var asphalt = [];
+var wall = [];
+var bush =[];
+//Empty Arrays have set coordinates pushed into them so that they look like they are moving 
+for (var i = 0; i < 3; i++) {
+    asphalt.push(i*165);
+    wall.push (i*80);
+    bush.push (i*20);
+}
+
+
+//car constructor function
+var Car = function (x, y, size, color, wheelSize) {
+    this.x = x; // Variable for the X Positon of the Car
+    this.y = y; // Variable for the Y Position of the Car
+    this.size = size; // Variable for the Size of the car
+    this.color = color; // Variable for the Colour of the car
+    this.wheelSize = wheelSize; // Variable for the Wheel Size of the Car
+    this.lives = 3; // Variable for the number of lives you have
+};
+
+//car protype draw function that draws the car
+Car.prototype.draw = function() {
+    
+    //constraining value so car doesnt run off the screen
+    this.x = constrain (this.x, 40, 340); // X Position Constarin (Maximum X you can go)
+    this.y = constrain (this.y, -20, 395); //Y Position Constarin (Maximum Y you can go)
+    
+    //car body
+    noStroke();
+    fill(this.color); //Car colour 
+    rect (this.x, this.y-8, this.size, this.size*1.9); // The Car itself 
+    ellipse(this.x+15,this.y+-9,this.size, this.size/4); //the bumper of the Car
+    
+    //headlights
+    fill(235, 235, 145);
+    triangle(this.x+28, this.y, this.x+17, this.y+-11, this.x+26, this.y+-8); //headlight triangle design
+    triangle(this.x+1, this.y, this.x+12, this.y+-11, this.x+3, this.y+-8); // ^^
+    
+    //windows
+    fill(61, 61, 61);
+    quad(this.x + 3, this.y, this.x + 26, this.y, this.x + 24, this.y + 12, this.x + 5, this.y + 12); //front window
+    quad(this.x + 6 , this.y+35, this.x + 23, this.y + 35, this.x + 27, this.y + 46, this.x + 3, this.y+-4 + 50); //backwindow
+    arc(this.x + 1.5, this.y + 16, 6, 25, -90, 90); //side windows
+    arc(this.x + 28, this.y + 16, 6, 25, 90, 270); //^^
+    rect(this.x+7, this.y+ 13, this.size/2, this.size/5); //sunroof (design)
+    rect(this.x+7, this.y+24, this.size/2, this.size/5); // ^^
+
+    //wheels
+    fill (0, 0, 0); //Wheel Color
+    //Wheels
+    rect (this.x-1, this.y, this.wheelSize, this.wheelSize*10); 
+    rect (this.x+30, this.y, this.wheelSize, this.wheelSize*10);
+    rect (this.x-1, this.y+35, this.wheelSize, this.wheelSize*10);
+    rect (this.x+30, this.y+35, this.wheelSize, this.wheelSize*10);
+    
+    //controls
+    //variable runGame is to prevent the cars in the shop to move
+    if (keyIsPressed && keyCode === RIGHT && runGame) {
+        this.x += 4;
+    } 
+    if (keyIsPressed && keyCode === LEFT  && runGame) {
+        this.x -= 4;   
+    } 
+    if (keyIsPressed && keyCode === UP  && runGame) {
+        this.y -= 4;   
+    } 
+    if (keyIsPressed && keyCode === DOWN  && runGame) {
+        this.y += 4;
+    }
+};
+    
+//tank constructor function
+var Tank = function (x, y) {
+    this.x = x;
+    this.y = y;
+    this.size = size;
+    this.color = color;
+};
+
+//easter egg tank draw function that draws the tank
+Tank.prototype.draw = function() {
+    
+    noStroke();
+    fill(29, 158, 33);
+    rect(this.x - 27, this.y - 65, 56, 135);
+  
+    //turret
+    stroke(14, 87, 30);
+    strokeWeight(1.5);
+    ellipse(this.x,this.y+-1,44,45);
+    ellipse(this+1,this.y+8,20,20);
+    rect(this.x+-8,this.y+-19,18,12,43);
+    rect(this.x+-4,this.y+-41,10,28,43);
+    fill(0, 0, 0);
+    ellipse(this.x+1,this.y+-35,7,7);
+
+    //wheels
+    fill(255, 0, 0);
+    rect(this.x - 25, this.y + 63, 10, 5);
+    rect(this.x + 16, this.y + 63, 10, 5); // glass
+    fill(26, 94, 53);
+    rect(this.x- 31, this.y - 61, 4, 120);
+    rect(this.x  +29, this.y - 61, 4, 120);
+
+    if (keyIsPressed && keyCode === RIGHT && runGame) {
+        this.x += 4;
+    } 
+    if (keyIsPressed && keyCode === LEFT  && runGame) {
+        this.x -= 4;   
+    } 
+    if (keyIsPressed && keyCode === UP  && runGame) {
+        this.y -= 4;   
+    } 
+    if (keyIsPressed && keyCode === DOWN  && runGame) {
+        this.y += 4;
+    }  
+};
+
+//easter egg tank -- complete lvl 10 use    
+var tankLvl = new Tank (200, 200);
+
+
+//car variables
+var redCar = new Car (75, 130, 30, color(255, 0, 0), 1); // Red Car Variable
+var blueCar = new Car (75, 275, 30, color (9, 0, 255), 1); //Blue Car Variable
+var pinkCar = new Car (285, 130, 30, color (255, 0, 247), 1); //Pink Car Variable
+var yellowCar = new Car (285, 275, 30, color (255, 242, 0), 1); // Yellow ar Variable
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//GAME FUNCTIONS
+
+
+//lives constructor
+//Image of the Heart
+var Lives = function(x, y, img) {
+    this.x = x; 
+    this.y = y;
+    this.img = getImage("cute/Heart");
+};
+
+
+//lives prototype that draws the heart
+Lives.prototype.draw = function() {
+    image (this.img, this.x, this.y, 40, 40);
+};
+
+
+//for function for the number of hearts -- liveCount will be used for the counter
+var hearts = [];
+for (var i= 0; i < liveCount; i++) {
+    hearts.push(new Lives(i*40+20,10));
+}
+
+   
+//falling winston constructor
+var Winston = function (x, y, img) {
+    this.x = x; // X Positions of the Winston Variable
+    this.y = y; // Y Positions of the Winston Variable
+    this.img = getImage("creatures/Winston"); //Image of Winston Variable
+};
+
+
+//falling winston draw prototype
+Winston.prototype.draw = function() {
+    image (this.img, this.x, this.y, 40, 40); //Image of Winston
+};
+
+
+//function that detects collision between car and winstons
+Car.prototype.collision = function (winston) {
+ 
+    //imageMode centered so that it detects in the center not the corner
+    imageMode(CENTER);
+    
+    //the if function that tells to lose hearts if the car is hit
+    if ((winston.x >= this.x && winston.x <= (this.x + 50)) && (winston.y >= this.y && winston.y <= (this.y + 50))) {
+        //so that the winston "disappears"
+        winston.y = 420;
+        liveCount --;
+    }
+    
+};
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//SCENE FUNCTIONS
+
+//gameover screen
+var gameOver = function () {
+    draw = function() {
+        background(204, 247, 255);
+
+        //infinite loop so that background keeps falling and repeat
+        for (var i = 0; i < xPositions.length; i++) {
+            noStroke();
+        
+            //for every loop a color is assigned to the shapes
+            fill(objectColor[i]);
+            
+            //simple if command that if yPosition is less than 400 it resets to 0
+            if (yPositions[i] > 500) {
+                yPositions[i] = 0;
+                winstonPosY[i] = -100;
+                rectPosY[i] = -100;
+            }   
+        
+            //making the rain and the animation
+            ellipse(xPositions[i], yPositions[i], 10, 10); // Ellipses that rain
+            image (getImage("creatures/Winston"),winstonPosX[i],winstonPosY[i],80,80); // Winstons that rain
+            rect (rectPosX[i],rectPosY[i],20,20); //Rectangles that rain
+            
+            rectPosY[i] += 5;
+            yPositions[i] += 3;
+            winstonPosY[i] += 4;
+        }
+        
+        // If statmement to tell you what level you reached and that you Lose, if you lose at Level 9 or lower
+        if (lvlCounter <= 9) {
+        //title
+        fill (217, 32, 69); //  Text Colour
+        textSize(80);
+        text ("You Lose", titleX, titleY-30); //Telling you that you lost 
+        textSize(40);
+        fill(138, 99, 2);
+        text ("You Reached Level "+ lvlCounter +"!!!", titleX, titleY+30); // Telling you what Level you reached 
+        
+        //Telling you that you passed Level 10 and Won
+        }else{
+            textSize(80);
+            text ("You Win", titleX, titleY-30);
+            textSize (40);
+            text ("You completed level 10!", titleX, titleY+30);
+            textSize(20);
+            text ("Even I couldn't reach it... Congratulations", titleX, titleY+250);
+        }
+        
+        //go back to main menu button or play again
+        loseButton.draw();
+        playAgainButton.draw();
+        
+    };
+    //making pageClick = true; will make use the endgame button during the game
+    pageClick = false;
+    pageClickOne = true;
+    pageClickTwo = false;
+};
+
+
+//how to play function
+var howToPlay = function () {
+    draw = function() {
+        background(204, 247, 255);
+
+        //infinite loop so that background keeps falling and repeat
+        for (var i = 0; i < xPositions.length; i++) {
+            noStroke();
+        
+            //for every loop a color is assigned to the shapes
+            fill(objectColor[i]);
+            
+            //simple if command that if yPosition is less than 400 it resets to 0
+            if (yPositions[i] > 500) {
+                yPositions[i] = 0;
+                winstonPosY[i] = -100;
+                rectPosY[i] = -100;
+            }   
+        
+            //making the rain and the animation
+            ellipse(xPositions[i], yPositions[i], 10, 10); //Ellipses raining for the background
+            image (getImage("creatures/Winston"),winstonPosX[i],winstonPosY[i],80,80); //Winstons raining for the background
+            rect (rectPosX[i],rectPosY[i],20,20); // Rectangles falling for the background
+            
+            rectPosY[i] += 5;
+            yPositions[i] += 3;
+            winstonPosY[i] += 4;
+        }
+        
+        //how-to-play instructions
+        fill (217, 32, 69); // Box colours
+        textSize(60);
+        text("How to Play", titleX-50, titleY-50);
+        fill(0, 0, 0); //Instructions colour
+        textSize(25);
+        // Instructions
+        text(" • Arrow keys to move",titleX-90, titleY-10);
+        text(" • Get to the end without getting hit", titleX-23, titleY+15);
+        text(" • Get to the highest level possible", titleX-26, titleY+40);
+        textSize(30);
+        text(" You Have 3 Lives... Good Luck!", titleX, titleY+270);
+        
+        //keyboard design
+        fill (0, 0, 0);
+        rect(rectX-40, rectY-40, rectSize, rectSize);
+        rect(rectX+50, rectY+50, rectSize, rectSize);
+        rect(rectX-130, rectY+50, rectSize, rectSize);
+        rect(rectX-40, rectY+50, rectSize, rectSize);
+        
+        fill (255, 255, 255);
+        triangle(triX, triY-30, triX+40, triY+20, triX-40, triY+20); 
+        triangle(triX, triY+125, triX+40, triY+75, triX-40, triY+75);
+        triangle(triX+60, triY+120, triX+125, triY+95, triX+60, triY+60); 
+        triangle(triX-60, triY+60, triX-60, triY+120, triX-125, triY+95); 
+ 
+        
+        
+        //main menu button
+        menuButton.draw();
+        
+        
+    };
+    pageClick = false;
+};
+
+
+//main menu function 
+var mainMenu = function () {
+    draw = function() {
+        background(204, 247, 255);   
+    
+        //infinite loop so that background keeps falling and repeat
+        for (var i = 0; i < xPositions.length; i++) {
+            noStroke();
+            
+            //for every loop a color is assigned to the shapes
+            fill(objectColor[i]);
+            
+            //simple if command that if yPosition is less than 400 it resets to 0
+            if (yPositions[i] > 500) {
+                yPositions[i] = 0;
+                winstonPosY[i] = -100;
+                rectPosY[i] = -100;
+            }   
+        
+            //making the rain and the animation
+            ellipse(xPositions[i], yPositions[i], 10, 10); // Ellipses raining for the background
+            image (getImage("creatures/Winston"),winstonPosX[i],winstonPosY[i],80,80); // Winstons raining for the background
+            rect (rectPosX[i],rectPosY[i],20,20); // Rectangles raining for the background
+            
+            rectPosY[i] += 5;
+            yPositions[i] += 3;
+            winstonPosY[i] += 4;
+            
+        }
+         //Waly Runs Title
+        walyRun(80);
+        
+        //draws the buttons
+        playButton.draw();
+        intsrucButton.draw();
+        shopButton.draw();
+        
+        
+    };
+    pageClick = true;
+};
+
+
+//shop function
+var shop = function () {
+    draw = function() {
+        
+        
+        background(204, 247, 255);
+        
+        //infinite loop so that background keeps falling and repeat
+        for (var i = 0; i < xPositions.length; i++) {
+            noStroke();
+        
+            //for every loop a color is assigned to the shapes
+            fill(objectColor[i]);
+            
+            //simple if command that if yPosition is less than 400 it resets to 0
+            if (yPositions[i] > 500) {
+                yPositions[i] = 0;
+                winstonPosY[i] = -100;
+                rectPosY[i] = -100;
+            }   
+        
+            //making the rain and the animation
+            ellipse(xPositions[i], yPositions[i], 10, 10); //Ellipses raining for the background
+            image (getImage("creatures/Winston"),winstonPosX[i],winstonPosY[i],80,80); // Winstons raining for the background
+            rect (rectPosX[i],rectPosY[i],20,20); //Rectangles raining for the background
+            
+            rectPosY[i] += 5;
+            yPositions[i] += 3;
+            winstonPosY[i] += 4;
+        }
+        //Text
+        fill (217, 32, 69);
+        textSize(40);
+        text ("Choose A Car", titleX-20, titleY-50);
+     
+ 
+        //button draws
+        menuButton.draw(); //Menu Button
+        pinkButton.draw(); //Pink Car Button
+        redButton.draw(); //Red Car Button
+        blueButton.draw(); //Blue Car Button
+        yellowButton.draw(); //yellow Car Button
+        
+        //car draws
+        redCar.draw();
+        blueCar.draw();
+        pinkCar.draw();
+        yellowCar.draw();
+        
+    
+        //button controls -- making it globally on the mouseClicked function will apply to every screen (very glitchy)
+        if (redButton.isMouseInside() && mouseIsPressed) {
+            redC = true;
+            yellowC = false;
+            blueC = false;
+            pinkC = false;
+            mainMenu();
+        }
+        else if (yellowButton.isMouseInside() && mouseIsPressed) {
+            yellowC = true;
+            redC = false;
+            blueC = false;
+            pinkC = false;
+            mainMenu();
+        }
+        else if (blueButton.isMouseInside() && mouseIsPressed) {
+            blueC = true;
+            redC = false;
+            yellowC = false;
+            pinkC = false;
+            mainMenu();
+        }
+        else if (pinkButton.isMouseInside() && mouseIsPressed) {
+            pinkC = true;
+            yellowC = false;
+            redC = false;
+            blueC = false;
+            mainMenu();
+        }
+      
+    };
+    pageClick = false;
+};
+
+
+//game function
+var startGame = function() {
+    //car variables are recalled to have start coordinates of (200, 350)
+    var redCar = new Car (200, 350, 30, color(255, 0, 0), 1);
+    var blueCar = new Car (200, 350, 30, color (9, 0, 255), 1);
+    var pinkCar = new Car (200, 350, 30, color (255, 0, 247), 1);
+    var yellowCar = new Car (200, 350, 30, color (255, 242, 0), 1);
+    var tankLvl = new Tank (200, 350, color (67, 168, 0));
+    
+    //function that lets the winstons fall at random positions
+    var winston = [];
+    //the code for the winston -- changes everytime so that it isnt the same coordinate when game is over
+    for (var i = 0; i < lvlDiff; i++) {  
+        winston.push(new Winston (i * lvlDiff, random(40, -200)));
+    }
+    
+    //draw function that runs the game
+    draw = function() {
+        
+        //asphalt
+        background (74, 176, 6);
+        fill(61, 60, 60);
+        noStroke();
+        rect (asphaltX, asphaltY, rectSize+220, rectSize+320);
+        
+    
+        //lane separator moves so it  looks like the road is moving
+        for (var i = 0; i < asphalt.length; i++) {
+            
+            //lane separator
+            fill (255, 242, 0);
+            rect (rectX-10, asphalt[i], rectSize-60, rectSize-20);
+            
+            //bushes and walls
+            //Images
+            image (getImage("cute/TreeUgly"),rectX+175, bush[i], rectSize-30, rectSize-20);
+            image (getImage("cute/TreeUgly"),rectX-175, bush[i], rectSize-30, rectSize-20);
+            image (getImage( "cute/WallBlock"),rectX-175, wall[i], rectSize-30, rectSize-20);
+            image (getImage("cute/WallBlock"),rectX+175, wall[i], rectSize-30, rectSize-20);
+            
+            //animation for the objects
+            asphalt[i] += 4;
+            bush[i] += 4;
+            wall[i] += 4;
+        
+            //so that each loop resets its y variable to 0 in order to make it look like infinite
+            if (asphalt [i] >= 450) {
+                asphalt[i] = -50;
+                wall[i] = -100;
+                bush[i] = -25;
+             }
+        }
+        
+        
+        //choose the car and the collision function for each one -- making it globally will lose life when winston.y is 400  
+        
+        if (tankUse) {
+            tankLvl.draw();
+            
+            //winston falling animation
+            for (var i = 0; i < lvlDiff; i++) {
+                winston[i].draw();
+                redCar.collision(winston[i]);
+                winston[i].y += lvlSpeed;
+             
+                if (winston[i].y > 420) {
+                    winston[i].y = -20;
+                }
+            }
+        }
+        
+        else if (redC) {
+            redCar.draw();
+            
+            //winston falling animation
+            for (var i = 0; i < lvlDiff; i++) {
+                winston[i].draw();
+                redCar.collision(winston[i]);
+                winston[i].y += lvlSpeed;
+             
+                if (winston[i].y > 420) {
+                    winston[i].y = -20;
+                 }
+             }
+        }
+        
+        else if (pinkC) {
+            pinkCar.draw();
+            
+            //winston falling animation
+            for (var i = 0; i < lvlDiff; i++) {
+                winston[i].draw();
+                pinkCar.collision(winston[i]);
+                winston[i].y += lvlSpeed;
+             
+                if (winston[i].y > 420) {
+                    winston[i].y = -20;
+                }
+            }
+        }
+        
+        else if (yellowC) {
+            yellowCar.draw();
+            
+            //winston falling animation
+            for (var i = 0; i < lvlDiff; i++) {
+                winston[i].draw();
+                yellowCar.collision(winston[i]);
+                winston[i].y += lvlSpeed;
+             
+                if (winston[i].y > 420) {
+                    winston[i].y = -20;
+                }
+             }
+        }
+        
+        else if (blueC) {
+            blueCar.draw();
+            
+            //winston falling animation
+            for (var i = 0; i < lvlDiff; i++) {
+                winston[i].draw();
+                blueCar.collision(winston[i]);
+                winston[i].y += lvlSpeed;
+             
+                if (winston[i].y > 420) {
+                    winston[i].y = -20;
+                }
+            }
+        }
+        
+        
+        //lives count
+        for (var i = 0; i < liveCount; i++) {
+            hearts[i].draw();
+        }
+        
+        
+        //gameover function
+        if (liveCount === 0) {
+            gameOver();
+            
+            //so that the the user has to complete 10 lvls again to use the tank
+            tankUse = false;
+        }
+        
+        //lvl 10 -- end game screen
+        if (lvlCounter === 11) {
+            gameOver();
+            
+            //tank becomes available for the user to use
+            tankUse = true;
+        }
+        
+        //level counter that keeps track of the user's levels
+        textSize(30);
+        fill (138, 99, 2);
+        text ("Level "+lvlCounter, titleX-150, titleY-50);
+     
+        //moving to the next level if statement -- increases difficulty
+        if (redCar.y < 50 || blueCar.y < 50 || yellowCar.y < 50 || pinkCar.y < 50 || tankLvl.y < 50 ) {
+            pageClickTwo = true;
+            lvlDiff -= 5;
+            lvlSpeed += 0.25;
+            lvlCounter++;
+            
+            //so that the winstons reset their random positions
+            for (var i = 0; i < lvlDiff; i++) {  
+                 winston.push(new Winston(i * lvlDiff, random(40, -200)));
+            }
+            // so that the user has time "to pat theirselves on the back" to move on to the next level
+            draw = function() {
+                nxtLvlButton.draw();
+            };
+        }
+
+        
+        //main menu button
+        menuButton.draw();
+    };
+    //the pageClicks are needed because end game buttons are able to be pressed during the game
+    pageClick = false;
+    pageClickOne = false;
+    pageClickTwo = false;
+};
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//mouseClicked function allows for different options to go to a different scene in the game
+mouseClicked = function() {
+ 
+    //pageClick is false on shop, play and instruction buttons -- prevents users that click on a button location and go to that scene no matter what scene the user is in even if the     button is not present
+    if (playButton.isMouseInside() && pageClick) {
+        startGame();
+        runGame = true;
+    } 
+    else if (intsrucButton.isMouseInside() && pageClick) {
+        howToPlay();
+    }  
+    else if (shopButton.isMouseInside() && pageClick) {
+        shop();
+    }
+    else if (menuButton.isMouseInside()) {
+        //default lvlOne variables so that the game restarts whenever this button is pressed
+        liveCount = 3;
+        lvlDiff = 60;
+        lvlSpeed = 2;
+        lvlCounter = 1;
+        
+        //main menu buton so game returs to menu();
+        mainMenu();
+    }
+    
+    else if (loseButton.isMouseInside() && pageClickOne) {
+        //default lvlOne variables so that the game restarts whenever this button is pressed
+        liveCount = 3;
+        lvlDiff = 60;
+        lvlSpeed = 2;
+        lvlCounter = 1;
+        
+        //main menu buton so game returs to menu();
+        mainMenu();
+    }
+    
+    else if (playAgainButton.isMouseInside() && pageClickOne) {
+        //default lvlOne variables so that the game restarts whenever this button is pressed
+        liveCount = 3;
+        lvlDiff = 60;
+        lvlSpeed = 2;
+        lvlCounter = 1;
+        
+        //startGame button so that the user is able to play again
+        startGame();
+    }
+    
+    //pageClickTwo is needed so that during the next level screen -- end game buttons aren't pressed even if     they're not there
+    else if (nxtLvlButton.isMouseInside() && pageClickTwo) {
+        startGame();
+
+    }
+    
+};
+    
+
+//draw function that runs the game
+draw = function() {
+    mainMenu();
+    
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//FINISH
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+           
